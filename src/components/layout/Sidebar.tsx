@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect } from 'react'
 import { Home, Search, Library, Heart, Clock, Music2, Plus, ListMusic, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
