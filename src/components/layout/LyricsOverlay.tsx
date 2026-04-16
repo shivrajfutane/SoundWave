@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Mic2, ExternalLink } from 'lucide-react'
 import { usePlayerStore } from '@/lib/store/player'
 import { fetchLyrics, extractArtistTitle } from '@/lib/lyrics'
+import { Logo } from '../ui/Logo'
 
 export default function LyricsOverlay() {
   const { currentSong, isLyricsOpen, toggleLyrics, lyrics, setLyrics, progress, duration } = usePlayerStore()
@@ -134,12 +135,23 @@ export default function LyricsOverlay() {
                 <p className="text-white/60 text-sm font-medium">{currentSong.artist}</p>
               </div>
             </div>
-            <button 
-              onClick={() => toggleLyrics(false)}
-              className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-90"
-            >
-              <X className="w-6 h-6" />
-            </button>
+
+            <div className="flex items-center gap-4">
+              {/* Brand Pill */}
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+                <div className="w-5 h-5 rounded-full bg-accent-primary flex items-center justify-center">
+                  <Logo className="w-3 h-3 text-black" />
+                </div>
+                <span className="text-xs font-black text-white tracking-tight uppercase">Soundwave</span>
+              </div>
+
+              <button 
+                onClick={() => toggleLyrics(false)}
+                className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-90"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </header>
 
           {/* Lyrics Content */}

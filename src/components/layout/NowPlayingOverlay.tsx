@@ -16,6 +16,7 @@ import {
 import { usePlayerStore } from '@/lib/store/player'
 import { Slider } from '../ui/Slider'
 import { Button } from '../ui/Button'
+import { Logo } from '../ui/Logo'
 
 export default function NowPlayingOverlay() {
   const { 
@@ -79,7 +80,14 @@ export default function NowPlayingOverlay() {
               <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">Playing from Album</p>
               <p className="text-xs md:text-sm font-bold text-white truncate max-w-[200px]">{currentSong.album || currentSong.title}</p>
             </div>
-            <div className="w-12 h-12" /> {/* Spacer */}
+            
+            {/* Brand Pill */}
+            <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+              <div className="w-5 h-5 rounded-full bg-accent-primary flex items-center justify-center">
+                <Logo className="w-3 h-3 text-black" />
+              </div>
+              <span className="text-xs font-black text-white tracking-tight uppercase">Soundwave</span>
+            </div>
           </header>
 
           <main className="flex-1 flex flex-col md:flex-row items-center justify-center px-6 md:px-20 gap-10 md:gap-20 overflow-y-auto pb-10">
