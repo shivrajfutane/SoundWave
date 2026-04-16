@@ -128,7 +128,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         console.error('[Player] Load Error:', err, 'ID:', id, 'URL:', song.audio_url)
         // If it failed with HTML5, try again without it (Web Audio API)
         // Some Jamendo streams serve content that browsers' HTML5 Audio is picky about
-        if (howl._html5) {
+        if ((howl as any)._html5) {
           console.warn('[Player] HTML5 Load failed. Retrying with Web Audio API...')
           howl.unload()
           const retryHowl = new Howl({
