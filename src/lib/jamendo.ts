@@ -22,7 +22,7 @@ async function jamendoFetch<T>(endpoint: string, params: Record<string, string> 
   const url = new URL(`${BASE}${endpoint}`)
   url.searchParams.set('client_id', CLIENT_ID || '')
   url.searchParams.set('format', 'json')
-  url.searchParams.set('audioformat', 'mp31')
+  url.searchParams.set('audioformat', 'mp32')
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
   
   if (process.env.NODE_ENV === 'development') {
@@ -52,6 +52,9 @@ export const fetchSimilar = (trackId: string, limit = 10) =>
 
 export const fetchArtistTracks = (artistName: string, limit = 20) =>
   jamendoFetch<JamendoTrack[]>('/tracks', { artist_name: artistName, limit: String(limit), include: 'musicinfo' })
+
+export const fetchByTrackIds = (ids: string[]) =>
+  jamendoFetch<JamendoTrack[]>('/tracks', { id: ids.join(','), include: 'musicinfo' })
 
 // Map Jamendo track → Supabase song shape
 export function mapToSong(track: JamendoTrack) {

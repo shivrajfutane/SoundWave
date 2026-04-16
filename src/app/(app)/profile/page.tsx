@@ -1,20 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { User, Camera, Mail, ShieldCheck, ChevronRight, LogOut } from 'lucide-react'
+import { Logo } from '@/components/ui/Logo'
 import { useLibraryStore } from '@/lib/store/library'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 export default function ProfilePage() {
-  const { user, updateProfile, setUser } = useLibraryStore()
+  const { user, updateProfile, setUser, likedSongs, playlists } = useLibraryStore()
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState(user?.name || '')
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '')
+
+  useEffect(() => {
+    if (user?.name) setName(user.name)
+  }, [user?.name])
 
   const handleSave = async () => {
-    updateProfile({ name, avatar_url: avatarUrl })
+    updateProfile({ name })
     setIsEditing(false)
   }
 
@@ -23,6 +27,20 @@ export default function ProfilePage() {
     await supabase.auth.signOut()
     setUser(null)
     window.location.href = '/discovery'
+  }
+
+  const handleOAuth = async (provider: 'google' | 'spotify') => {
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      toast.error(`Error connecting to ${provider}`)
+    }
   }
 
   if (!user) {
@@ -83,11 +101,11 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-2 w-full gap-2 opacity-80">
               <div className="p-3 bg-white/5 rounded-2xl">
-                <p className="text-xl font-bold text-white">12</p>
+                <p className="text-xl font-bold text-white">{playlists.length}</p>
                 <p className="text-[10px] text-[#b3b3b3] uppercase tracking-wider">Playlists</p>
               </div>
               <div className="p-3 bg-white/5 rounded-2xl">
-                <p className="text-xl font-bold text-white">248</p>
+                <p className="text-xl font-bold text-white">{likedSongs.length}</p>
                 <p className="text-[10px] text-[#b3b3b3] uppercase tracking-wider">Liked</p>
               </div>
             </div>
@@ -167,18 +185,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[#b3b3b3] uppercase tracking-wider ml-1">Profile Photo URL</label>
-                <input 
-                  type="text"
-                  disabled={!isEditing}
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-white focus:outline-none focus:border-accent-primary focus:bg-white/[0.08] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="https://example.com/photo.jpg"
-                />
-              </div>
             </div>
           </motion.div>
 
@@ -191,27 +197,51 @@ export default function ProfilePage() {
           >
             <h3 className="text-xl font-bold text-white mb-6">Connected Accounts</h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/[0.08] transition-colors cursor-pointer group">
+              <div 
+                className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/[0.08] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-accent-primary flex items-center justify-center">
+                    <Logo className="w-5 h-5 text-black" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">Soundwave Account</p>
+                    <p className="text-xs text-[#b3b3b3]">Primary account</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 rounded bg-accent-primary/10 text-accent-primary text-[10px] font-black uppercase tracking-tighter">Active</span>
+                  <ChevronRight className="w-5 h-5 text-[#b3b3b3] group-hover:text-white group-hover:translate-x-1 transition-all" />
+                </div>
+              </div>
+
+              <div 
+                onClick={() => handleOAuth('google')}
+                className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/[0.08] transition-colors cursor-pointer group"
+              >
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center">
                     <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
                   </div>
                   <div>
                     <p className="font-bold text-white">Google Account</p>
-                    <p className="text-xs text-[#b3b3b3]">Connected via OAuth</p>
+                    <p className="text-xs text-[#b3b3b3]">Click to connect or refresh</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-[#b3b3b3] group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/[0.08] transition-colors cursor-pointer group">
+              <div 
+                onClick={() => handleOAuth('spotify')}
+                className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/[0.08] transition-colors cursor-pointer group"
+              >
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-[#1DB954] flex items-center justify-center">
                     <img src="https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png" className="w-5 h-5 invert" alt="Spotify" />
                   </div>
                   <div>
                     <p className="font-bold text-white">Spotify Account</p>
-                    <p className="text-xs text-[#b3b3b3]">Connected via OAuth</p>
+                    <p className="text-xs text-[#b3b3b3]">Click to connect or refresh</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-[#b3b3b3] group-hover:text-white group-hover:translate-x-1 transition-all" />

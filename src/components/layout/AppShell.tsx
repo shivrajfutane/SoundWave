@@ -1,13 +1,20 @@
+'use client'
+
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import Player from './Player'
+import { usePlayerStore } from '@/lib/store/player'
 import MobileNav from './MobileNav'
 import NowPlayingOverlay from './NowPlayingOverlay'
 import PageTransition from '../animations/PageTransition'
+import LyricsOverlay from './LyricsOverlay'
 import { AuthModal } from '../auth/AuthModal'
 import { CreatePlaylistModal } from '../ui/CreatePlaylistModal'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const { isNowPlayingOpen, isLyricsOpen } = usePlayerStore()
+  const isOverlayOpen = isNowPlayingOpen || isLyricsOpen
+
   return (
     <div className="flex h-screen bg-bg-base text-text-primary overflow-hidden">
       <Sidebar />
@@ -23,8 +30,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <Player />
-      <MobileNav />
+      {!isOverlayOpen && <MobileNav />}
       <NowPlayingOverlay />
+      <LyricsOverlay />
       <AuthModal />
       <CreatePlaylistModal />
     </div>

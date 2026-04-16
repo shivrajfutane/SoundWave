@@ -23,15 +23,18 @@ export interface Song {
   youtube_id?: string
 }
 
-// Helper to send commands to our hidden YouTube iframe
+// YouTube commands are now handled reactively in Player.tsx using the official API
 const sendYTCommand = (command: string, args: any[] = []) => {
-  const iframe = document.getElementById('yt-player') as HTMLIFrameElement
-  if (iframe && iframe.contentWindow) {
-    iframe.contentWindow.postMessage(JSON.stringify({
-      event: 'command',
-      func: command,
-      args
-    }), '*')
+  // Keeping as a placeholder for now, but most logic is shifted to reactive effects
+}
+
+// Singleton to track the active progress ticker and avoid memory leaks/conflicts
+let activeTicker: NodeJS.Timeout | null = null
+
+const clearTicker = () => {
+  if (activeTicker) {
+    clearInterval(activeTicker)
+    activeTicker = null
   }
 }
 
@@ -64,6 +67,10 @@ interface PlayerState {
   setProgress: (p: number) => void
   isNowPlayingOpen: boolean
   toggleNowPlaying: (open?: boolean) => void
+  isLyricsOpen: boolean
+  toggleLyrics: (open?: boolean) => void
+  lyrics: string | null
+  setLyrics: (l: string | null) => void
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -93,23 +100,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
 
     if (song.source === 'youtube') {
-      // For YouTube, Player.tsx handles the iframe injection.
-      // We just need to update state and start a progress ticker roughly.
       trackRecentlyPlayed(song)
-      sendYTCommand('playVideo')
-
-      // A simple fallback progress ticker for YouTube if we don't bind full API events
-      let p = 0
-      const ticker = setInterval(() => {
-        p += 0.5
-        const { isPlaying, currentSong } = get()
-        if (isPlaying && currentSong?.source === 'youtube') {
-           set({ progress: p })
-           // We can get actual time via YT API, but postMessage is one-way for commands. 
-           // Player.tsx will handle syncing time back to store if native.
-        }
-      }, 500)
-      
+      clearTicker()
       set({ currentSong: song, queue: newQueue, queueIndex: index, howl: null, isPlaying: true, progress: 0, duration: song.duration })
       return
     }
@@ -132,7 +124,26 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         set({ duration: d })
       },
       onpause: () => set({ isPlaying: false }),
-      onloaderror: (id, err) => console.error('[Player] Load Error:', err, 'ID:', id, 'URL:', song.audio_url),
+      onloaderror: (id, err) => {
+        console.error('[Player] Load Error:', err, 'ID:', id, 'URL:', song.audio_url)
+        // If it failed with HTML5, try again without it (Web Audio API)
+        // Some Jamendo streams serve content that browsers' HTML5 Audio is picky about
+        if (howl._html5) {
+          console.warn('[Player] HTML5 Load failed. Retrying with Web Audio API...')
+          howl.unload()
+          const retryHowl = new Howl({
+            src: [song.audio_url],
+            html5: false,
+            format: ['mp3'],
+            volume: get().isMuted ? 0 : get().volume,
+            onplay: () => set({ isPlaying: true, duration: retryHowl.duration() }),
+            onend: () => get().next(),
+            onloaderror: (rid, rerr) => console.error('[Player] Retry failed:', rerr)
+          })
+          retryHowl.play()
+          set({ howl: retryHowl })
+        }
+      },
       onplayerror: (id, err) => {
         console.error('[Player] Play Error:', err)
         howl.once('unlock', () => howl.play())
@@ -140,14 +151,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     })
 
     // Progress ticker
-    const ticker = setInterval(() => {
+    clearTicker()
+    activeTicker = setInterval(() => {
       if (howl.playing()) {
         set({ progress: howl.seek() as number })
       }
     }, 500)
 
-    howl.on('end', () => clearInterval(ticker))
-    howl.on('stop', () => clearInterval(ticker))
+    howl.on('end', () => clearTicker())
+    howl.on('stop', () => clearTicker())
+    howl.on('play', () => {
+      // If we resumed or re-started, ensure ticker is running
+      if (!activeTicker) {
+        activeTicker = setInterval(() => {
+          if (howl.playing()) set({ progress: howl.seek() as number })
+        }, 500)
+      }
+    })
+
     howl.play()
     trackRecentlyPlayed(song)
 
@@ -155,21 +176,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   pause: () => { 
-    const { howl, currentSong } = get()
-    if (currentSong?.source === 'youtube') sendYTCommand('pauseVideo')
-    else howl?.pause()
+    const { howl } = get()
+    howl?.pause()
     set({ isPlaying: false }) 
   },
   resume: () => { 
-    const { howl, currentSong } = get()
-    if (currentSong?.source === 'youtube') {
-      sendYTCommand('playVideo')
-    } else {
-      if (Howler.ctx && Howler.ctx.state === 'suspended') {
-        Howler.ctx.resume()
-      }
-      howl?.play()
+    const { howl } = get()
+    if (Howler.ctx && Howler.ctx.state === 'suspended') {
+      Howler.ctx.resume()
     }
+    howl?.play()
     set({ isPlaying: true }) 
   },
 
@@ -196,28 +212,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   seek: (seconds) => { 
-    const { howl, currentSong } = get()
-    if (currentSong?.source === 'youtube') {
-      sendYTCommand('seekTo', [seconds, true])
-    } else {
-      howl?.seek(seconds)
-    }
+    const { howl } = get()
+    howl?.seek(seconds)
     set({ progress: seconds }) 
   },
   setVolume: (vol) => { 
-    const { howl, currentSong } = get()
-    if (currentSong?.source === 'youtube') sendYTCommand('setVolume', [vol * 100])
-    else howl?.volume(vol)
+    const { howl } = get()
+    howl?.volume(vol)
     set({ volume: vol, isMuted: vol === 0 }) 
   },
   toggleMute: () => {
-    const { isMuted, volume, howl, currentSong } = get()
+    const { isMuted, volume, howl } = get()
     const willMute = !isMuted
-    if (currentSong?.source === 'youtube') {
-      sendYTCommand(willMute ? 'mute' : 'unMute')
-    } else {
-      howl?.volume(willMute ? 0 : volume)
-    }
+    howl?.volume(willMute ? 0 : volume)
     set({ isMuted: willMute })
   },
   toggleShuffle: () => set(s => ({ isShuffled: !s.isShuffled })),
@@ -228,4 +235,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   removeFromQueue: (index) => set(s => ({ queue: s.queue.filter((_, i) => i !== index) })),
   setProgress: (p) => set({ progress: p }),
   toggleNowPlaying: (open) => set(s => ({ isNowPlayingOpen: open ?? !s.isNowPlayingOpen })),
+  isLyricsOpen: false,
+  toggleLyrics: (open) => set(s => ({ isLyricsOpen: open ?? !s.isLyricsOpen })),
+  lyrics: null,
+  setLyrics: (l) => set({ lyrics: l }),
 }))

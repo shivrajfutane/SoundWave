@@ -203,7 +203,7 @@ async function fetchYouTubeFallback(query: string, limit = 10): Promise<SearchRe
   
   try {
     const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)} official audio&type=video&maxResults=${limit}&key=${key}`
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)} official audio&type=video&maxResults=${limit}&videoEmbeddable=true&videoSyndicated=true&key=${key}`
     )
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));

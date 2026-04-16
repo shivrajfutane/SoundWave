@@ -35,37 +35,12 @@ export default function NowPlayingOverlay() {
     repeatMode,
     toggleRepeat,
     isShuffled,
-    toggleShuffle
+    toggleShuffle,
+    lyrics
   } = usePlayerStore()
 
-  const [lyrics, setLyrics] = useState<string | null>(null)
-  const [loadingLyrics, setLoadingLyrics] = useState(false)
-
-  useEffect(() => {
-    if (isNowPlayingOpen && currentSong) {
-      fetchLyrics()
-    }
-  }, [isNowPlayingOpen, currentSong])
-
-  const fetchLyrics = async () => {
-    if (!currentSong) return
-    setLoadingLyrics(true)
-    setLyrics(null)
-    
-    try {
-      const res = await fetch(`/api/lyrics?artist=${encodeURIComponent(currentSong.artist)}&title=${encodeURIComponent(currentSong.title)}`)
-      const data = await res.json()
-      if (data.lyrics) {
-        setLyrics(data.lyrics)
-      } else {
-        setLyrics("No lyrics found for this track.")
-      }
-    } catch (err) {
-      setLyrics("Could not load lyrics.")
-    } finally {
-      setLoadingLyrics(false)
-    }
-  }
+  // We now use the global lyrics state from the store
+  const loadingLyrics = false // Fetched by LyricsOverlay or a global trigger
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -83,7 +58,7 @@ export default function NowPlayingOverlay() {
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden"
+          className="fixed inset-0 z-[100] bg-black flex flex-col overflow-hidden"
         >
           {/* Background Gradient */}
           <div 
@@ -122,8 +97,10 @@ export default function NowPlayingOverlay() {
               </motion.div>
               
               <div className="w-full">
-                <h1 className="text-2xl md:text-4xl font-black text-white mb-2 leading-tight">{currentSong.title}</h1>
-                <p className="text-lg md:text-xl text-white/60 font-medium">{currentSong.artist}</p>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-2 leading-tight line-clamp-2 overflow-hidden break-words">
+                  {currentSong.title}
+                </h1>
+                <p className="text-lg md:text-xl text-white/60 font-medium truncate">{currentSong.artist}</p>
               </div>
 
               {/* Progress Bar and Main Controls inside left side for desktop feel */}

@@ -69,7 +69,7 @@ export function AuthModal() {
         {/* Social Logins */}
         <div className="grid grid-cols-1 gap-3">
           <Button 
-            variant="outline" 
+            variant="secondary" 
             className="w-full bg-white text-black hover:bg-gray-100 border-none flex items-center justify-center gap-3 h-11"
             onClick={() => handleOAuth('google')}
             disabled={loading}
@@ -84,7 +84,7 @@ export function AuthModal() {
           </Button>
 
           <Button 
-            variant="outline" 
+            variant="secondary" 
             className="w-full bg-[#1DB954] text-black hover:bg-[#1ed760] border-none flex items-center justify-center gap-3 h-11"
             onClick={() => handleOAuth('spotify')}
             disabled={loading}

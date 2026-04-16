@@ -7,6 +7,7 @@ import {
   Sparkles, Search, Brain, Radio, Music2, Headphones, Heart,
   ChevronRight, Code2, Mail, Info, Mic, Send, Zap, Wand2
 } from 'lucide-react'
+import { Logo } from '@/components/ui/Logo'
 
 // ─────────────────────────────────────────────
 //  ANIMATED WAVEFORM BACKGROUND
@@ -476,7 +477,7 @@ export default function WelcomePage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-accent-primary flex items-center justify-center shadow-[0_0_20px_rgba(29,185,84,0.3)]">
-              <Music2 className="w-5 h-5 text-black" />
+              <Logo className="w-5 h-5 text-black" />
             </div>
             <span className="text-xl font-bold tracking-tight">Soundwave</span>
           </Link>
@@ -676,7 +677,7 @@ export default function WelcomePage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-accent-primary flex items-center justify-center">
-              <Music2 className="w-4 h-4 text-black" />
+              <Logo className="w-4 h-4 text-black" />
             </div>
             <span className="font-bold">Soundwave</span>
             <span className="text-white/30 text-sm">© 2026</span>

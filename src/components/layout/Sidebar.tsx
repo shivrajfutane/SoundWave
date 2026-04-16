@@ -8,6 +8,8 @@ import { useUIStore } from '@/lib/store/ui'
 import { usePlayerStore } from '@/lib/store/player'
 import { createClient } from '@/lib/supabase/client'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { Logo } from '@/components/ui/Logo'
 
 const navItems = [
   { name: 'Home', href: '/discovery', icon: Home },
@@ -58,8 +60,8 @@ export default function Sidebar() {
         href="/discovery" 
         className="px-6 pt-6 pb-4 flex items-center gap-3 group/logo cursor-pointer"
       >
-        <div className="w-9 h-9 rounded-full bg-accent-primary shadow-[0_0_20px_rgba(29,185,84,0.35)] flex items-center justify-center flex-shrink-0 group-hover/logo:scale-110 transition-transform">
-          <Music2 className="w-5 h-5 text-black" />
+        <div className="w-9 h-9 rounded-xl bg-accent-primary shadow-[0_0_20px_rgba(29,185,84,0.35)] flex items-center justify-center flex-shrink-0 group-hover/logo:scale-110 transition-all duration-300">
+          <Logo className="w-6 h-6 text-black" />
         </div>
         <span className="font-black text-xl text-white tracking-tight">Soundwave</span>
       </Link>
@@ -198,23 +200,22 @@ export default function Sidebar() {
             href="/profile"
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.06] transition-colors group"
           >
-            <div className="w-9 h-9 rounded-full bg-accent-primary/20 overflow-hidden flex-shrink-0 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-accent-primary flex-shrink-0 flex items-center justify-center">
               {user.avatar_url ? (
-                <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover rounded-full" />
               ) : (
-                <User className="w-5 h-5 text-accent-primary" />
+                <Logo className="w-5 h-5 text-black" />
               )}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-white truncate group-hover:text-accent-primary transition-colors">{user.name}</p>
-              <p className="text-[10px] text-[#b3b3b3] font-medium uppercase tracking-wider">Premium Plan</p>
             </div>
           </Link>
         ) : (
           <div className="p-3 bg-white/[0.05] rounded-xl border border-white/[0.08]">
             <p className="text-xs text-[#b3b3b3] mb-3">Sign in to save your discovered tracks and playlists.</p>
             <button 
-              onClick={() => useUIStore.getState().setAuthModalOpen(true)}
+              onClick={() => useUIStore.getState().openAuthModal()}
               className="w-full py-2 bg-white text-black font-bold text-xs rounded-full hover:scale-105 active:scale-95 transition-all"
             >
               Log in

@@ -1,10 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Heart, ListMusic, Maximize2 } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Heart, ListMusic, Maximize2, Mic2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePlayerStore } from '@/lib/store/player'
 import { useLibraryStore } from '@/lib/store/library'
+
+declare global {
+  interface Window {
+    onYouTubeIframeAPIReady: () => void
+    YT: any
+  }
+}
 
 export default function Player() {
   const [mounted, setMounted] = useState(false)
@@ -13,13 +20,192 @@ export default function Player() {
 
   const {
     currentSong, isPlaying, progress, duration, volume, isMuted, isShuffled, repeatMode,
-    pause, resume, next, previous, seek, setVolume, toggleMute, toggleShuffle, toggleRepeat, toggleNowPlaying
+    pause, resume, next, previous, seek, setVolume, toggleMute, toggleShuffle, toggleRepeat, toggleNowPlaying, isLyricsOpen, toggleLyrics, setProgress,
+    isNowPlayingOpen
   } = usePlayerStore()
+
+  const isOverlayOpen = isNowPlayingOpen || isLyricsOpen
+
+  const ytPlayerRef = useRef<any>(null)
+  const [ytReady, setYtReady] = useState(false)
 
   const { toggleLike, isLiked } = useLibraryStore()
   const liked = currentSong ? isLiked(currentSong.id) : false
 
   useEffect(() => { setMounted(true) }, [])
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input or textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+
+      if (e.code === 'Space') {
+        e.preventDefault()
+        if (isPlaying) pause()
+        else resume()
+      }
+
+      if (e.code === 'ArrowRight') {
+        e.preventDefault()
+        next()
+      }
+
+      if (e.code === 'ArrowLeft') {
+        e.preventDefault()
+        previous()
+      }
+
+      if (e.code === 'ArrowUp') {
+        e.preventDefault()
+        setVolume(Math.min(1, volume + 0.1))
+      }
+
+      if (e.code === 'ArrowDown') {
+        e.preventDefault()
+        setVolume(Math.max(0, volume - 0.1))
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isPlaying, pause, resume, next, previous, volume, setVolume])
+
+  // Load YouTube API
+  useEffect(() => {
+    if (window.YT) return
+    const tag = document.createElement('script')
+    tag.src = 'https://www.youtube.com/iframe_api'
+    const firstScriptTag = document.getElementsByTagName('script')[0]
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
+
+    window.onYouTubeIframeAPIReady = () => {
+      console.log('[Player] YouTube API Ready')
+    }
+  }, [])
+
+  // Manage YouTube Player Lifecycle
+  useEffect(() => {
+    if (currentSong?.source !== 'youtube' || !window.YT) return
+
+    const initPlayer = () => {
+      if (ytPlayerRef.current) {
+        if (typeof ytPlayerRef.current.loadVideoById === 'function') {
+          ytPlayerRef.current.loadVideoById(currentSong.youtube_id)
+          if (isPlaying) ytPlayerRef.current.playVideo()
+          else ytPlayerRef.current.pauseVideo()
+        }
+        return
+      }
+
+      const container = document.getElementById('yt-player-container')
+      if (!container) return // Make sure DOM element exists
+
+      ytPlayerRef.current = new window.YT.Player('yt-player-container', {
+        height: '1',
+        width: '1',
+        videoId: currentSong.youtube_id,
+        playerVars: {
+          autoplay: isPlaying ? 1 : 0,
+          controls: 0,
+          disablekb: 1,
+          enablejsapi: 1,
+          modestbranding: 1,
+          playsinline: 1,
+          origin: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+          iv_load_policy: 3
+        },
+        events: {
+          onReady: (event: any) => {
+            setYtReady(true)
+            event.target.setVolume(volume * 100)
+            if (isPlaying) event.target.playVideo()
+            event.target.unMute() // Explicitly unmute to ensure sound
+          },
+          onStateChange: (event: any) => {
+            console.log('[Player] YT State Change:', event.data)
+            // Synchronize state back if YouTube finishes
+            if (event.data === window.YT.PlayerState.ENDED) {
+              next()
+            }
+          },
+          onError: (event: any) => {
+            console.error('[Player] YT Error:', event.data)
+            // Error codes: 2 (invalid param), 5 (HTML5 error), 100 (not found), 101/150 (not allowed)
+            if (event.data === 101 || event.data === 150) {
+              console.warn('[Player] Video is restricted. Trying fallback or next.')
+            }
+          }
+        }
+      })
+    }
+
+    if (window.YT && window.YT.Player) {
+      initPlayer()
+    } else {
+      const checkInterval = setInterval(() => {
+        if (window.YT && window.YT.Player) {
+          initPlayer()
+          clearInterval(checkInterval)
+        }
+      }, 500)
+      return () => clearInterval(checkInterval)
+    }
+  }, [currentSong?.id, currentSong?.source]) // Re-init only when song changes
+
+  // Sync Pause/Resume/Volume for YouTube
+  useEffect(() => {
+    if (!ytPlayerRef.current || !ytReady || currentSong?.source !== 'youtube') return
+
+    if (isPlaying) {
+      ytPlayerRef.current.playVideo()
+      // Adding a slight delay to allow the browser to process the play intent before unmuting
+      setTimeout(() => {
+        if (ytPlayerRef.current && ytPlayerRef.current.unMute) {
+          ytPlayerRef.current.unMute()
+        }
+      }, 100)
+    } else {
+      ytPlayerRef.current.pauseVideo()
+    }
+
+    ytPlayerRef.current.setVolume(volume * 100)
+    if (isMuted) ytPlayerRef.current.mute()
+    else ytPlayerRef.current.unMute()
+  }, [isPlaying, volume, isMuted, ytReady, currentSong?.id])
+
+  // Reactive seeking: detect if store progress jumps significantly (manual seek)
+  const lastProgressRef = useRef(progress)
+  useEffect(() => {
+    if (!ytPlayerRef.current || !ytReady || currentSong?.source !== 'youtube') return
+    
+    const diff = Math.abs(progress - lastProgressRef.current)
+    if (diff > 2) { // Threshold for "manual seek" vs "ticker update"
+      ytPlayerRef.current.seekTo(progress, true)
+    }
+    lastProgressRef.current = progress
+  }, [progress, ytReady, currentSong?.source])
+
+  // Progress Ticker for YouTube
+  useEffect(() => {
+    if (!ytPlayerRef.current || !ytReady || currentSong?.source !== 'youtube' || !isPlaying) return
+
+    const ticker = setInterval(() => {
+      if (ytPlayerRef.current && ytPlayerRef.current.getCurrentTime) {
+        const time = ytPlayerRef.current.getCurrentTime()
+        const state = ytPlayerRef.current.getPlayerState?.()
+        if (time > 0) setProgress(time)
+        
+        // Log state transitions if stuck
+        if (time <= 1 && isPlaying) {
+          console.log('[Player] YT State:', state, 'Time:', time)
+        }
+      }
+    }, 1000)
+
+    return () => clearInterval(ticker)
+  }, [isPlaying, ytReady, currentSong?.id])
 
   const fmt = (s: number) => {
     const m = Math.floor(s / 60)
@@ -38,19 +224,29 @@ export default function Player() {
   if (!mounted || !currentSong) return null
 
   return (
-    <AnimatePresence>
-      <motion.div
-        key="player"
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 35 }}
-        className="fixed bottom-[64px] md:bottom-0 left-0 right-0 h-[72px] md:h-[90px] bg-[#181818] border-t border-white/[0.08] z-[100] flex items-center px-4 gap-4 md:gap-6"
+    <>
+      {/* Persistent YouTube IFrame container - always mounted out of sight */}
+      <div 
+        className="fixed pointer-events-none opacity-0" 
+        style={{ left: '-1000px', top: '-1000px', width: '200px', height: '200px', zIndex: -100 }}
       >
-        {/* Mobile progress line */}
+        <div id="yt-player-container" />
+      </div>
+
+      <AnimatePresence>
+        {!isOverlayOpen && (
+          <motion.div
+            key="player"
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 35 }}
+            className="fixed bottom-[64px] md:bottom-0 left-0 right-0 h-[72px] md:h-[90px] bg-[#181818] border-t border-white/[0.08] z-[100] flex items-center px-4 gap-4 md:gap-6"
+          >
+            {/* Mobile progress line */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/10 md:hidden">
           <div
-            className="h-full bg-accent-primary transition-all duration-300"
+            className="h-full bg-accent-primary"
             style={{ width: `${progressPct}%` }}
           />
         </div>
@@ -58,14 +254,7 @@ export default function Player() {
         {/* INVISIBLE YOUTUBE PLAYER 
             We inject this when a song falls back to YouTube so that we can bridge controls
         */}
-        {currentSong.source === 'youtube' && (
-          <iframe
-            id="yt-player"
-            className="opacity-0 absolute pointer-events-none w-0 h-0"
-            src={`https://www.youtube.com/embed/${currentSong.youtube_id}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}&controls=0`}
-            allow="autoplay; encrypted-media"
-          />
-        )}
+        {/* NO LONGER CONDITIONALLY RENDERED HERE - moved to end for persistence */}
 
         {/* ───── LEFT: Song info ───── */}
         <AnimatePresence mode="wait">
@@ -211,6 +400,14 @@ export default function Player() {
             <Maximize2 className="w-4 h-4" />
           </button>
           
+          <button 
+            onClick={() => toggleLyrics()}
+            className={`transition-colors ${isLyricsOpen ? 'text-accent-primary' : 'text-text-secondary hover:text-white'}`}
+            title="Lyrics"
+          >
+            <Mic2 className="w-4 h-4" />
+          </button>
+
           <button className="text-text-secondary hover:text-white transition-colors">
             <ListMusic className="w-4 h-4" />
           </button>
@@ -263,8 +460,10 @@ export default function Player() {
               : <Play className="w-7 h-7 fill-current translate-x-[1px]" />
             }
           </motion.button>
-        </div>
-      </motion.div>
-    </AnimatePresence>
+          </div>
+        </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
