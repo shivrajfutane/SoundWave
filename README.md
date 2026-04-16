@@ -1,6 +1,9 @@
-# 🎵 Soundwave
+<p align="center">
+  <img src="public/logo.svg" alt="Soundwave Logo" height="60" />
+</p>
 
-A premium, Spotify-inspired music streaming web application built with **Next.js 15**, featuring dual audio sources (Jamendo & YouTube), real-time lyrics, and a fully immersive UI.
+<h1 align="center">Soundwave</h1>
+<p align="center">A premium, Spotify-inspired music streaming web app built with Next.js 15 — dual audio sources, real-time synced lyrics, and a fully immersive UI.</p>
 
 ![Soundwave](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs) ![Supabase](https://img.shields.io/badge/Supabase-Auth-3ecf8e?logo=supabase) ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-06b6d4?logo=tailwindcss) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript)
 
