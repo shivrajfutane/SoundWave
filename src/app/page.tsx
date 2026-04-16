@@ -80,39 +80,6 @@ function GlowOrb({ className }: { className?: string }) {
   )
 }
 
-// ─────────────────────────────────────────────
-//  ANIMATED COUNTER
-// ─────────────────────────────────────────────
-function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef<HTMLSpanElement>(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          let start = 0
-          const duration = 2000
-          const startTime = Date.now()
-          const tick = () => {
-            const elapsed = Date.now() - startTime
-            const progress = Math.min(elapsed / duration, 1)
-            const eased = 1 - Math.pow(1 - progress, 3)
-            setCount(Math.floor(eased * target))
-            if (progress < 1) requestAnimationFrame(tick)
-          }
-          tick()
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.5 }
-    )
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [target])
-
-  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>
-}
 
 // ─────────────────────────────────────────────
 //  MOCK PLAYER UI (hero section decoration)
@@ -535,22 +502,7 @@ export default function WelcomePage() {
               </a>
             </div>
 
-            {/* Stats */}
-            <div className="flex gap-10 pt-4">
-              {[
-                { value: 80, suffix: 'M+', label: 'Tracks' },
-                { value: 4, suffix: 'M+', label: 'Artists' },
-                { value: 500, suffix: 'K+', label: 'Daily Users' },
-              ].map(stat => (
-                <div key={stat.label}>
-                  <div className="text-2xl font-bold text-white">
-                    <AnimatedCounter target={stat.value} suffix={stat.suffix} />
-                  </div>
-                  <div className="text-xs text-white/40 uppercase tracking-wider mt-1">{stat.label}</div>
-                </div>
-              ))}
             </div>
-          </div>
 
           {/* Right: Mock Player */}
           <div className="hidden lg:block">

@@ -11,14 +11,14 @@ import { searchSongs, SearchResult } from '@/lib/search'
 import { usePlayerStore } from '@/lib/store/player'
 
 const GENRES = [
-  { name: 'Pop', color: 'bg-pink-600', img: 'https://images.unsplash.com/photo-1514525253361-bee8a487409e?q=80&w=400&auto=format&fit=crop' },
-  { name: 'Hip Hop', color: 'bg-orange-600', img: 'https://images.unsplash.com/photo-1546529304-7407a3939bc6?q=80&w=400&auto=format&fit=crop' },
+  { name: 'Pop', color: 'bg-pink-600', img: 'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?q=80&w=400&auto=format&fit=crop' },
+  { name: 'Hip Hop', color: 'bg-orange-600', img: 'https://images.unsplash.com/photo-1544977435-095ab7742d13?q=80&w=400&auto=format&fit=crop' },
   { name: 'Rock', color: 'bg-red-700', img: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?q=80&w=400&auto=format&fit=crop' },
   { name: 'Electronic', color: 'bg-blue-600', img: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=400&auto=format&fit=crop' },
   { name: 'Jazz', color: 'bg-yellow-700', img: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=400&auto=format&fit=crop' },
   { name: 'Classical', color: 'bg-amber-800', img: 'https://images.unsplash.com/photo-1507838153414-b4b713384a76?q=80&w=400&auto=format&fit=crop' },
   { name: 'Indie', color: 'bg-emerald-600', img: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=400&auto=format&fit=crop' },
-  { name: 'R&B', color: 'bg-purple-700', img: 'https://images.unsplash.com/photo-1504173010664-32509aaeba92?q=80&w=400&auto=format&fit=crop' },
+  { name: 'R&B', color: 'bg-purple-700', img: 'https://images.unsplash.com/photo-1557242110-316710437ef1?q=80&w=400&auto=format&fit=crop' },
   { name: 'Acoustic', color: 'bg-teal-600', img: 'https://images.unsplash.com/photo-1453738773917-9c3eff1db985?q=80&w=400&auto=format&fit=crop' },
   { name: 'Ambient', color: 'bg-indigo-700', img: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?q=80&w=400&auto=format&fit=crop' },
 ]
