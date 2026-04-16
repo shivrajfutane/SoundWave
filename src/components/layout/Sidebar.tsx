@@ -7,6 +7,7 @@ import { useLibraryStore } from '@/lib/store/library'
 import { useUIStore } from '@/lib/store/ui'
 import { usePlayerStore } from '@/lib/store/player'
 import { createClient } from '@/lib/supabase/client'
+import { usePathname } from 'next/navigation'
 
 const navItems = [
   { name: 'Home', href: '/discovery', icon: Home },
