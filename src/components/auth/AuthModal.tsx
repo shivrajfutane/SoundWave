@@ -13,11 +13,12 @@ export function AuthModal() {
   const router = useRouter()
   
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
+  const [step, setStep] = useState<'email' | 'otp'>('email')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -25,17 +26,39 @@ export function AuthModal() {
     const supabase = createClient()
     
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password })
-        if (error) throw error
-      }
+      const { error } = await supabase.auth.signInWithOtp({ 
+        email,
+        options: {
+          shouldCreateUser: true, // Use OTP flow for both login and signup
+        }
+      })
+      if (error) throw error
+      setStep('otp')
+    } catch (err: any) {
+      setError(err.message || 'Failed to send code')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    
+    const supabase = createClient()
+    
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'email',
+      })
+      if (error) throw error
       closeAuthModal()
       router.refresh()
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setError(err.message || 'Invalid or expired code')
     } finally {
       setLoading(false)
     }
@@ -105,48 +128,84 @@ export function AuthModal() {
           </span>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={step === 'email' ? handleSendOtp : handleVerifyOtp} className="space-y-4">
         {error && (
           <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
             {error}
           </div>
         )}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-text-secondary">Email</label>
-          <Input 
-            type="email" 
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={loading}
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-text-secondary">Password</label>
-          <Input 
-            type="password" 
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
-        </div>
-        <Button className="w-full mt-4" type="submit" disabled={loading}>
-          {loading ? 'Processing...' : (isLogin ? "Log In" : "Sign Up")}
-        </Button>
-        <p className="text-sm text-center text-text-muted mt-4">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button 
-            type="button" 
-            onClick={() => setAuthModalTab(isLogin ? 'signup' : 'signin')}
-            className="text-accent-primary hover:underline font-medium"
-            disabled={loading}
-          >
-            {isLogin ? "Sign up" : "Log in"}
-          </button>
-        </p>
+
+        {step === 'email' ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-secondary">Email</label>
+              <Input 
+                type="email" 
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            <Button className="w-full mt-4" type="submit" disabled={loading}>
+              {loading ? 'Sending...' : (isLogin ? "Get Login Code" : "Create Account")}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-text-secondary">Verification Code</label>
+                <button 
+                  type="button" 
+                  onClick={() => setStep('email')}
+                  className="text-xs text-accent-primary hover:underline"
+                >
+                  Change Email
+                </button>
+              </div>
+              <Input 
+                type="text" 
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                required
+                disabled={loading}
+                className="text-center text-2xl tracking-[0.5em] font-mono"
+                autoFocus
+              />
+              <p className="text-[10px] text-text-muted mt-2 text-center">
+                Enter the 6-digit code sent to <b>{email}</b>
+              </p>
+            </div>
+            <Button className="w-full mt-4" type="submit" disabled={loading}>
+              {loading ? 'Verifying...' : "Verify Code"}
+            </Button>
+            <button 
+              type="button"
+              onClick={handleSendOtp}
+              disabled={loading}
+              className="w-full text-xs text-text-muted hover:text-white transition-colors py-2"
+            >
+              Didn't get a code? Resend
+            </button>
+          </div>
+        )}
+
+        {step === 'email' && (
+          <p className="text-sm text-center text-text-muted mt-4">
+            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+            <button 
+              type="button" 
+              onClick={() => setAuthModalTab(isLogin ? 'signup' : 'signin')}
+              className="text-accent-primary hover:underline font-medium"
+              disabled={loading}
+            >
+              {isLogin ? "Sign up" : "Log in"}
+            </button>
+          </p>
+        )}
       </form>
     </div>
   </Modal>
