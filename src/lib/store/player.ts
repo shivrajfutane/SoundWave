@@ -17,9 +17,9 @@ export interface Song {
   artist: string
   album?: string
   cover_url?: string
-  audio_url: string
+  audio_url?: string
   duration: number
-  source?: 'jamendo' | 'youtube'
+  source?: 'jamendo' | 'youtube' | undefined
   youtube_id?: string
 }
 
@@ -71,6 +71,7 @@ interface PlayerState {
   toggleLyrics: (open?: boolean) => void
   lyrics: string | null
   setLyrics: (l: string | null) => void
+  isResolving: boolean
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -86,28 +87,80 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   duration: 0,
   howl: null,
   isNowPlayingOpen: false,
+  isResolving: false,
 
-  play: (song, queue) => {
+  play: async (song, queue) => {
     const state = get()
     state.howl?.unload()
 
-    const newQueue = queue ?? [song]
-    const index = newQueue.findIndex(s => s.id === song.id)
+    const newQueue = queue ?? [get().currentSong].filter(Boolean) as Song[]
+    const finalQueue = newQueue.length > 0 ? newQueue : [song]
+    const index = finalQueue.findIndex(s => s.id === song.id)
 
     // Ensure AudioContext is running (browsers block it until interaction)
     if (Howler.ctx && Howler.ctx.state === 'suspended') {
       Howler.ctx.resume()
     }
 
-    if (song.source === 'youtube') {
-      trackRecentlyPlayed(song)
+    set({ 
+      currentSong: song, 
+      queue: finalQueue, 
+      queueIndex: index !== -1 ? index : 0, 
+      howl: null, 
+      isPlaying: false, 
+      progress: 0, 
+      duration: song.duration || 0,
+      isResolving: true
+    })
+
+    let resolvedSong = song
+    
+    // Resolve audio if we only have Spotify metadata
+    if (!song.source || (!song.audio_url && !song.youtube_id)) {
+      try {
+        const res = await fetch('/api/songs/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: song.title, artist: song.artist })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          resolvedSong = { ...song, ...data }
+          
+          // Update the queue with resolved song
+          const currentState = get()
+          if (currentState.currentSong?.id === song.id) {
+            const updatedQueue = [...currentState.queue]
+            const qIdx = updatedQueue.findIndex(s => s.id === song.id)
+            if (qIdx !== -1) updatedQueue[qIdx] = resolvedSong
+            set({ currentSong: resolvedSong, queue: updatedQueue })
+          }
+        }
+      } catch (err) {
+        console.error('Failed to resolve track', err)
+      }
+    }
+
+    set({ isResolving: false })
+
+    // Check if user changed song while we were waiting
+    if (get().currentSong?.id !== song.id) return
+
+    trackRecentlyPlayed(resolvedSong)
+
+    if (resolvedSong.source === 'youtube') {
       clearTicker()
-      set({ currentSong: song, queue: newQueue, queueIndex: index, howl: null, isPlaying: true, progress: 0, duration: song.duration })
+      set({ isPlaying: true, duration: resolvedSong.duration })
+      return
+    }
+
+    if (!resolvedSong.audio_url) {
+      console.error('No audio url available after resolving.')
       return
     }
 
     const howl = new Howl({
-      src: [song.audio_url],
+      src: [resolvedSong.audio_url],
       html5: true, // Use HTML5 audio for better cross-domain support and efficiency
       format: ['mp3'],
       volume: state.isMuted ? 0 : state.volume,
@@ -125,14 +178,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       },
       onpause: () => set({ isPlaying: false }),
       onloaderror: (id, err) => {
-        console.error('[Player] Load Error:', err, 'ID:', id, 'URL:', song.audio_url)
+        console.error('[Player] Load Error:', err, 'ID:', id, 'URL:', resolvedSong.audio_url)
         // If it failed with HTML5, try again without it (Web Audio API)
         // Some Jamendo streams serve content that browsers' HTML5 Audio is picky about
         if ((howl as any)._html5) {
           console.warn('[Player] HTML5 Load failed. Retrying with Web Audio API...')
           howl.unload()
           const retryHowl = new Howl({
-            src: [song.audio_url],
+            src: [resolvedSong.audio_url!],
             html5: false,
             format: ['mp3'],
             volume: get().isMuted ? 0 : get().volume,

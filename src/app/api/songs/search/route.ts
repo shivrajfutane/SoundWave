@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { searchTracks, mapToSong } from '@/lib/jamendo'
+import { searchSpotify } from '@/lib/spotify'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -10,11 +10,18 @@ export async function GET(req: Request) {
   }
 
   try {
-    const results = await searchTracks(query, 20)
-    const songs = results.map(mapToSong)
-    return NextResponse.json({ songs })
-  } catch (error) {
-    console.error('Jamendo Search Error:', error)
-    return NextResponse.json({ error: 'Failed to search tracks' }, { status: 500 })
+    const start = Date.now()
+    const songs = await searchSpotify(query, 24)
+    return NextResponse.json({ 
+      hits: songs, 
+      total: songs.length, 
+      query, 
+      strategy: 'spotify_api', 
+      cached: false, 
+      took_ms: Date.now() - start 
+    })
+  } catch (error: any) {
+    console.error('Spotify Search Error:', error)
+    return NextResponse.json({ error: error.message || 'Failed to search tracks' }, { status: 500 })
   }
 }

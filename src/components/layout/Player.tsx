@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Heart, ListMusic, Maximize2, Mic2 } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Heart, ListMusic, Maximize2, Mic2, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePlayerStore } from '@/lib/store/player'
 import { useLibraryStore } from '@/lib/store/library'
@@ -21,7 +21,7 @@ export default function Player() {
   const {
     currentSong, isPlaying, progress, duration, volume, isMuted, isShuffled, repeatMode,
     pause, resume, next, previous, seek, setVolume, toggleMute, toggleShuffle, toggleRepeat, toggleNowPlaying, isLyricsOpen, toggleLyrics, setProgress,
-    isNowPlayingOpen
+    isNowPlayingOpen, isResolving
   } = usePlayerStore()
 
   const isOverlayOpen = isNowPlayingOpen || isLyricsOpen
@@ -340,9 +340,11 @@ export default function Player() {
               onClick={() => isPlaying ? pause() : resume()}
               className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform shadow-lg"
             >
-              {isPlaying
-                ? <Pause className="w-4 h-4 fill-current" />
-                : <Play className="w-4 h-4 fill-current translate-x-[1px]" />
+              {isResolving 
+                ? <Loader2 className="w-4 h-4 animate-spin my-auto mx-auto" />
+                : isPlaying
+                  ? <Pause className="w-4 h-4 fill-current m-auto" />
+                  : <Play className="w-4 h-4 fill-current translate-x-[1px] m-auto" />
               }
             </motion.button>
 
@@ -455,9 +457,11 @@ export default function Player() {
             onClick={() => isPlaying ? pause() : resume()}
             className="text-white"
           >
-            {isPlaying
-              ? <Pause className="w-7 h-7 fill-current" />
-              : <Play className="w-7 h-7 fill-current translate-x-[1px]" />
+            {isResolving
+              ? <Loader2 className="w-7 h-7 animate-spin text-accent-primary my-auto mx-auto" />
+              : isPlaying
+                ? <Pause className="w-7 h-7 fill-current m-auto" />
+                : <Play className="w-7 h-7 fill-current translate-x-[1px] m-auto" />
             }
           </motion.button>
           </div>

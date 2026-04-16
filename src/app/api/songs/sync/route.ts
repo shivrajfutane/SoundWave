@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         album: song.album || null,
         duration: song.duration,
         cover_url: song.cover_url || null,
-        audio_url: song.audio_url,
+        audio_url: song.audio_url || '',
       }, { onConflict: 'id' })
 
     if (error) {

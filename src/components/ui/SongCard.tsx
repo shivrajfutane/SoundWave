@@ -111,7 +111,7 @@ export function SongCard({ song, queue, onClick, variant = 'card', index, playli
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-xs text-text-secondary truncate">{song.artist}</p>
             <span className="hidden sm:inline-block text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-white/50 border border-white/5">
-              {song.source === 'youtube' ? 'Official Audio' : 'Free Track'}
+              {song.source === 'youtube' ? 'Official Audio' : song.source === 'jamendo' ? 'Free Track' : 'Song'}
             </span>
           </div>
         </div>
@@ -269,7 +269,7 @@ export function SongCard({ song, queue, onClick, variant = 'card', index, playli
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-xs text-text-secondary truncate">{song.artist}</p>
               <span className="hidden sm:inline-block text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-white/50 border border-white/5">
-                {song.source === 'youtube' ? 'Official Audio' : 'Free Track'}
+                {song.source === 'youtube' ? 'Official Audio' : song.source === 'jamendo' ? 'Free Track' : 'Song'}
               </span>
             </div>
           </div>

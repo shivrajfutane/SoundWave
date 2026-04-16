@@ -7,8 +7,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { SongCard } from '@/components/ui/SongCard'
 import StaggerList from '@/components/animations/StaggerList'
 import { useDebounce } from '@/lib/hooks/useDebounce'
-import { searchSongs, SearchResult } from '@/lib/search'
-import { usePlayerStore } from '@/lib/store/player'
+import { usePlayerStore, Song } from '@/lib/store/player'
 
 const GENRES = [
   { name: 'Pop', color: 'bg-pink-600', img: 'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?q=80&w=400&auto=format&fit=crop' },
@@ -27,7 +26,7 @@ export default function SearchPage() {
   const { play } = usePlayerStore()
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebounce(query, 400)
-  const [results, setResults] = useState<SearchResult[]>([])
+  const [results, setResults] = useState<Song[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [searchMeta, setSearchMeta] = useState<{ strategy: string; took_ms: number; cached: boolean } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -44,10 +43,14 @@ export default function SearchPage() {
     setIsLoading(true)
     setError(null)
 
-    searchSongs(debouncedQuery, 24)
+    fetch(`/api/songs/search?q=${encodeURIComponent(debouncedQuery)}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to search')
+        return res.json()
+      })
       .then(response => {
         if (cancelled) return
-        setResults(response.hits)
+        setResults(response.hits || [])
         setSearchMeta({ strategy: response.strategy, took_ms: response.took_ms, cached: response.cached })
         setIsLoading(false)
       })
@@ -150,7 +153,7 @@ export default function SearchPage() {
                         {results[0].artist}
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] uppercase font-bold tracking-widest text-text-muted border border-white/5">
-                        {results[0].source === 'youtube' ? 'Official Audio' : 'Free Track'}
+                        {results[0].source === 'youtube' ? 'Official Audio' : results[0].source === 'jamendo' ? 'Free Track' : 'Song'}
                       </span>
                     </div>
                   </div>
